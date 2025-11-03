@@ -1390,22 +1390,25 @@ def get_alerts():
         "should_alert": should_alert  # Frontend can use this to trigger sound
     })
 
-if __name__ == '__main__':
-    # Start continuous APEX poller if URL is set
-    if ORACLE_APEX_URL:
-        poller_thread = threading.Thread(target=continuous_apex_poller, daemon=True)
-        poller_thread.start()
-        print('✅ Continuous APEX poller started (fetching every 3 seconds)')
-        print(f'   Main sensors: {ORACLE_APEX_URL}')
-        if ORACLE_APEX_SOIL_URL:
-            print(f'   Soil moisture supplement: {ORACLE_APEX_SOIL_URL}')
-    else:
-        print('⚠️ ORACLE_APEX_URL not set - APEX polling disabled')
+# Start continuous APEX poller when module is loaded (works with Gunicorn)
+if ORACLE_APEX_URL:
+    poller_thread = threading.Thread(target=continuous_apex_poller, daemon=True)
+    poller_thread.start()
+    print('✅ Continuous APEX poller started (fetching every 3 seconds)')
+    print(f'   Main sensors: {ORACLE_APEX_URL}')
+    if ORACLE_APEX_SOIL_URL:
+        print(f'   Soil moisture supplement: {ORACLE_APEX_SOIL_URL}')
+else:
+    print('⚠️ ORACLE_APEX_URL not set - APEX polling disabled')
 
-    # Start the IP broadcast service in a separate thread
-    broadcast_thread = threading.Thread(target=ip_broadcast_service, daemon=True)
-    broadcast_thread.start()
-    print("IP broadcast service started")
+# Start the IP broadcast service in a separate thread
+broadcast_thread = threading.Thread(target=ip_broadcast_service, daemon=True)
+broadcast_thread.start()
+print("IP broadcast service started")
+
+if __name__ == '__main__':
+    # For development only - use gunicorn in production
+    app.run(host='0.0.0.0', port=5000, debug=True)
 
 @app.route('/api/export-report', methods=['GET'])
 def export_greenhouse_report():
